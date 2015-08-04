@@ -1,0 +1,74 @@
+---
+title: "Regression Model Course - Quiz1"
+author: "Shiv"
+date: "Friday, July 31, 2015"
+output: html_document
+---
+## Motivation
+Exploration pad for assignments for Quiz 1 of Regressin Model Course.
+
+
+**Question 1 : We know that minimizer for least squares ($\sum_{i=1}^n (X_i - \mu)^2$) is $\mu$ = $\bar X$. What's the value of $\mu$ if each of the value of $X_i$ have associated weights $W_i = W_1, W_2, \ldots, W_n$**
+So we have to find the value of $\mu$ to minimize $\sum_{i=1}^nW_i(X_i-\mu)^2$
+
+
+Each $X_i$ that has weight$W_i$, can be considered as $W_i$ individual $X_i$'s.
+So with this we expand the polulation from N to $\sum_{i=1}^nW_i$. Now the problem is reduced to simple least squares with additional elements, for which $\mu$ is mean. In this case mean would translate to the weighted mean $(\sum_{i=1}^n W_i*X_i)/\sum_{i=1}^nW_i$
+
+``` {r}
+x <- c(0.18, -1.54, 0.42, 0.95)
+w <- c(2, 1, 3, 1)
+
+weighted.mean(x,w)
+```
+
+**Question 2: How to find a regression line that passes thru the origin?**
+
+R prvoides a "lm" function that can be made to not have an intecept and just calculate
+a regression line thru the origin.
+
+```{r}
+x <- c(0.8, 0.47, 0.51, 0.73, 0.36, 0.58, 0.57, 0.85, 0.44, 0.42)
+y <- c(1.39, 0.72, 1.55, 0.48, 1.19, -1.59, 1.23, -0.65, 1.49, 0.05)
+lm(y~x-1)
+
+```
+
+**Question 3: Find the slope and intercepts for the regression line. 
+User MtCars data set, MPG as outcome and horsepower (hp) as predictor.**
+
+R prvoides a "lm" function that can be used to get the intercept and slope parameters
+for the regression line.
+
+```{r}
+lm(mtcars$mpg~mtcars$hp)
+```
+Also, the regression line may be defined as $Y_i=\beta_0 + \beta_1*X_i$ where $\beta_0$
+is the intercept and $\beta_1$ is the slope. 
+$$
+\beta_1 = Cor(y,x)*std(y)/std(x)    \beta_0 = \bar Y - \beta_1*\bar X
+$$
+
+```{r}
+slope<-cor(mtcars$mpg,mtcars$hp)*sd(mtcars$mpg)/sd(mtcars$hp)
+slope
+intercept<-mean(mtcars$mpg) - mean(mtcars$hp)*slope
+intercept
+```
+
+**Question 6: What is Normalization? How to calcualte a normalized value for 
+a given variable**
+
+"Normalization is process of adjusting values measured of diffirent scales to a notinonally common scale"
+[wikipedia] (https://en.wikipedia.org/wiki/Normalization_(statistics))
+
+This can be achived in R using the *scale* function
+```{r}
+x <- c(8.58, 10.46, 9.01, 9.64, 8.86)
+str(scale(x))
+```
+Normalized value $Z_i = (X_i - \bar X)/std(X)$
+``` {r}
+x <- c(8.58, 10.46, 9.01, 9.64, 8.86)
+round((8.58 - mean(x))/sd(x),3)
+````
