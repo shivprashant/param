@@ -1,0 +1,24 @@
+---
+title: "NotesFromRegressionModel"
+author: "Shiv"
+date: "Thursday, July 30, 2015"
+output: html_document
+---
+Notes from my course of Regression Model. 
+- Key Takeaways.
+- Code samples to help exlain the key take aways.
+
+Objective is to make these useful for consumption with or without the  Course 
+- Regression Models,  Brian Caffo  Coursera  Data Science Specialization)
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
