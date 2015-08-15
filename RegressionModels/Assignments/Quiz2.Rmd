@@ -1,0 +1,107 @@
+---
+title: "Regression Model Course - Quiz2"
+author: "Shiv"
+date: "Monday, August 10, 2015"
+output: html_document
+---
+## Motivation
+The Quizes and this course is quite hard! Notes here to navigate the tough times :-)
+
+
+**Question 1 : Consider the following data and Give a P-value for the two sided hypothesis test of whether ??1 from a linear regression model is 0 or not**
+What the hell is a P-value? Why on earth does it have a existence?
+
+``` {r}
+x <- c(0.61, 0.93, 0.83, 0.35, 0.54, 0.16, 0.91, 0.62, 0.62)
+y <- c(0.67, 0.84, 0.6, 0.18, 0.85, 0.47, 1.1, 0.65, 0.36)
+
+```
+
+**Question 2 : Consider the data above and give the estimate of residual standard deviation**
+What are residuals? Residuals are those tiny/teeny estimations errors for a given set predictors (x). Residuals are deltas around the regression line with mean of 0.
+
+What is residual standard deviation? Standard deviation is sqrt of variance. Variance for a residuals is defined as 
+$\sigma^2 = 1/(n-2)\sum{i=1}^n r_i^2$. Mortals do not understand why we divide by n-2 and not by n, but so is the case of standard devision where we dare to divide by n-1 and not by n. Just trust the math here! For more details, read into the wikipedia article. Hope you understand, I did not; but i lived happily every after. So again, residual standard deviation is measure of spread of residuals and is $\sigma^2 = 1/(n-2)\sum{i=1}^n r_i^2$.
+
+
+``` {r}
+x <- c(0.61, 0.93, 0.83, 0.35, 0.54, 0.16, 0.91, 0.62, 0.62)
+y <- c(0.67, 0.84, 0.6, 0.18, 0.85, 0.47, 1.1, 0.65, 0.36)
+
+fit<-lm(y~x)
+residuals<-resid(fit)
+n<-length(residuals)
+stdDev<-sqrt(sum(residuals^2)/(n-2))
+round(stdDev,3)
+
+```
+
+**Question 7 and 8 : Scaling the predictor**
+
+``` {r include=FALSE}
+library(UsingR)
+```
+
+``` {r}
+
+
+fit<-lm(price~carat, data=diamond)
+coef(fit)
+
+#demonstrate scaling the x by a constant amount. 
+fit2<-lm(price~I(carat -mean(carat)),data=diamond )
+coef(fit2)
+#As X is scaled by the mean(carat), the intercept represents the cost of diamond of mean weight.
+
+
+#demonstrate scaling the units of x. 
+# carat is 200mg, what's the increase in price per mg.
+fit3<-lm(price~I(carat*200),data=diamond )
+coef(fit3)
+#The slope ( coef 2) represents the incease in price per mg.
+
+```
+
+**Question 9 : Refer back to the mtcars data set with mpg as an outcome and weight (wt) as the predictor. About what is the ratio of the the sum of the squared errors, ???ni=1(Yi???Y^i)2 when comparing a model with just an intercept (denominator) to the model with the intercept and slope (numerator)? **
+
+What do you mean by model with "just an intercept?"
+A model with just an intercept  implies a model that fits based 
+```{r}
+fit<-lm(mtcars$mpg~mtcars$wt)
+res<-resid(fit)
+rms_res<-sum(res^2)
+
+fit2<-lm(mtcars$mpg~1)
+res2<-resid(fit2)
+rms_res2<-sum((res2^2))
+
+```
+
+**Question 9.1 : Refer to mtcars database mtcars database with mpg as the predictor and transmissio as predictor. Explain the variability of mgp using a model that has just an intecept and a model that has slope and intercept **
+````{r}
+fit<-lm(mpg~wt,data=mtcars)
+#Predict a confidence interval for average weight.
+mean_wt<-mean(mtcars$wt)
+predict(fit,data.frame(wt=c(mean_wt)), interval="confidence")
+```
+
+**Question 5 : Consider again the mtcars data set and a linear regression model with mpg as predicted by weight (1,000 lbs). A new car is coming weighing 3000 pounds. Construct a 95% prediction interval for its mpg. What is the upper endpoint? **
+
+
+```{r}
+fit<-lm(mpg~wt,data=mtcars)
+#Predict a confidence interval for average weight.
+mean_wt<-mean(mtcars$wt)
+predict(fit,data.frame(wt=c(3)), interval="prediction")
+```
+
+** Question 6 : Consider again the mtcars data set and a linear regression model with mpg as predicted by weight (in 1,000 lbs). A "short" ton is defined as 2,000 lbs. Construct a 95% confidence interval for the expected change in mpg per 1 short ton increase in weight. Give the lower endpoint.**
+
+
+```{r}
+wt_inShortTon<-mtcars$wt/2
+fit<-lm(mtcars$mpg~wt_inShortTon)
+#Predict a confidence interval for average weight.
+mean_wt<-mean(mtcars$wt)
+predict(fit,data.frame(wt_inShortTon=c(1)), interval="confidence")
+```
