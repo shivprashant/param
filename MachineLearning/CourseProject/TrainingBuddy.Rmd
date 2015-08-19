@@ -1,0 +1,36 @@
+---
+title: "MyTrainingBuddy"
+author: "Shiv"
+date: "Tuesday, August 18, 2015"
+output: html_document
+---
+MyTrainingBuddy is a machinelearning algorithm that learns how correctly a given gym excercise is done and grades your exercize into the right category. The report below illustrates the making of the MyTrainingBuddy.
+
+MyTrainingBuddy is trained using a data provided by [groupware.les] http://groupware.les.inf.puc-rio.br/har. The data is already split as Training and Test Set. Training set would be used to train and test the data. While the original test set would be used to finally validate this data. Keeping one data set ( hence forth called the validation set) separately and using it once and only once to find the accuracy of the model implies that we do not use the validation set for training the model and avoid any overfitting errors.
+
+As a first step lets setup the enviroment, load the data set.
+
+```{r}
+WKDir="C:/Users/shivsood/Documents/GitHub/param/MachineLearning/CourseProject"
+setwd(WKDir)
+df<-read.csv("pml-training.csv",header=TRUE)
+```
+Note that `r nrow(df)` rows were loaded in this data set. As a next step, first split the data as training and test set. Then use the training set for further exploration to understand features of the data that can be used for training. Note : That **classe** is a value that we wish to predict and that would be used to split the data into 2 sets.
+
+
+```{r}
+library(caret)
+set.seed(02121976)
+trainIndex=createDataPartition(df$classe,p=0.8,list=FALSE)
+traningSet=df[trainIndex,]
+testSet=df[-trainIndex,]
+```
+From `r nrow(df)` rows of original data, the training set consist of `r nrow(traningSet)` rows and testSet contains
+`r nrow(testSet)` rows of data now.
+
+
+
+
+
+
+
