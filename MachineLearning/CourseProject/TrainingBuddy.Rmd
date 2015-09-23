@@ -3,12 +3,14 @@ title: "MyTrainingBuddy"
 author: "Shiv"
 date: "Tuesday, August 18, 2015"
 output: html_document
+pandoc_args: ["+RTS", "-K64m","-RTS"]
 ---
+
 MyTrainingBuddy is a machinelearning algorithm that learns how correctly a given gym excercise is done and grades your exercize into the right category. The report below illustrates the making of the MyTrainingBuddy.
 
 MyTrainingBuddy is trained using a data provided by [groupware.les] http://groupware.les.inf.puc-rio.br/har. The data is already split as Training and Test Set. Training set would be used to train and test the data. While the original test set would be used to finally validate this data. Keeping one data set ( hence forth called the validation set) separately and using it once and only once to find the accuracy of the model implies that we do not use the validation set for training the model and avoid any overfitting errors.
 
-***Load the dataset***
+##Load the dataset
 
 As a first step lets setup the enviroment, load the data set.
 
@@ -17,17 +19,18 @@ WKDir="C:/Users/shivsood/Documents/GitHub/param/MachineLearning/CourseProject"
 setwd(WKDir)
 df<-read.csv("pml-training.csv",header=TRUE)
 validationSet<-read.csv("pml-testing.csv",header=TRUE)
+mySeed="02121976"
 ```
 Note that `r nrow(df)` rows were loaded in this data set. 
 
-***Partition Training and Test Set***
+##Partition Training and Test Set
 
 As a next step, first split the data as training and test set. Then use the training set for further exploration to understand features of the data that can be used for training. Note : That **classe** is a value that we wish to predict and that would be used to split the data into 2 sets.
 
 
 ```{r}
 library(caret)
-set.seed(02121976)
+set.seed(mySeed)
 trainIndex=createDataPartition(df$classe,p=0.8,list=FALSE)
 trainingSet=df[trainIndex,]
 testSet=df[-trainIndex,]
@@ -35,51 +38,209 @@ testSet=df[-trainIndex,]
 From `r nrow(df)` rows of original data, the training set consist of `r nrow(trainingSet)` rows and testSet contains
 `r nrow(testSet)` rows of data now.
 
-***Clean/Scrub the Training Set***
+##Clean/Scrub the Training Set
 
 At first lets explore the data by normal read out of the data. Some observations to make
-- There are 3 type of variables - int, num and factors. Note : Factor variables need to be covereted before any applicaiton.
-- Lots of variables seem are NA. Intresting to explore if there are features that have no avaialble values at all.
-- 
+
+* There are 3 type of variables - int, num and factors. Note : Factor variables need to be covereted before any applicaiton.
+* Lots of variables seem are NA. Would be intresting to explore columns that are sparse to the extend they could be removed.
 
 ```{r}
-vFeaturesWithNoData=sapply(trainingSet,function(z) round(100*sum(!is.na(z))/nrow(trainingSet),2))
-vColsWithNoData_ValidattionSet=sapply(validationSet,function(z) round(100*sum(!is.na(z))/nrow(validationSet),2))
+# trainSetSparseness is a measure of sparseness of each of the columns of the training set
+trainSetSparseness=sapply(trainingSet,function(z) round(100*sum(is.na(z))/nrow(trainingSet),2))
+
+# validationSetSparseness is a measure of sparseness of each of the columns of the validation set
+validationSetSparseness=sapply(validationSet,function(z) round(100*sum(is.na(z))/nrow(validationSet),2))
 ```
 
-We observe of a total of `r ncol(trainingSet)` features in the data set there are `r length(vFeaturesWithNoData[vFeaturesWithNoData!=100])` features with only `r mean(vFeaturesWithNoData[vFeaturesWithNoData!=100])`% non NA values. So we are looking at `r length(vFeaturesWithNoData[vFeaturesWithNoData!=100])` very sparse ( less density of data). The data needs to be cleaned to remove these as features.
+Of the `r ncol(trainingSet)` features in the training data set there are `r length(trainSetSparseness[trainSetSparseness!=0])` features that have on an average have `r mean(trainSetSparseness[trainSetSparseness!=0])`% their values as **NAs**. Does the validation set shows the same pattern?
+Of the `r ncol(validationSet)` features in the validation data set there are `r length(validationSetSparseness[validationSetSparseness!=0])` features that have `r mean(validationSetSparseness[validationSetSparseness!=0])`% of their values as **NAs**.
 
-
-Does test set have these features?
-We observe of a total of `r ncol(validationSet)` features in the data set there are `r length(vColsWithNoData_ValidattionSet[vColsWithNoData_ValidattionSet!=100])` features with only `r mean(vColsWithNoData_ValidattionSet[vColsWithNoData_ValidattionSet!=100])`% non NA values. So we are looking at `r length(vColsWithNoData_ValidattionSet[vColsWithNoData_ValidattionSet!=100])` columns that are very sparse ( less density of data). "No data" is not a good input to the predictor,  so these should be removed out of the feature set as well.
-
-
-Drop columns from the trainingSet that are do not have any data in the testSet.
+The training set data needs to be cleaned to  ** Drop columns that are complete NA's in the validation set**. The following columns would be dropped from the data.
 
 ```{r}
-vNoDataColsInValidationSet=vColsWithNoData_ValidattionSet[vColsWithNoData_ValidattionSet!=100]
-trainingSubSet=trainingSet[,-which(names(trainingSet) %in% names(vNoDataColsInValidationSet))]
+colsToDrop=validationSetSparseness[validationSetSparseness!=0]
+#names(colsToDrop)
 ```
-
-In this reduced data set, lets look for features that have no data. These would not incluence the outcome and thus should be removed. Hoping to get no features with sparse data.
 
 ```{r}
-vFeaturesWithNoData2=sapply(trainingSubSet,function(z) round(100*sum(!is.na(z))/nrow(trainingSubSet),2))
+trainingSubSet=trainingSet[,-which(names(trainingSet) %in% names(colsToDrop))]
+testSubSet=testSet[,-which(names(testSet) %in% names(colsToDrop))]
+```
+Dropping the columns we have removed features in the training set that are not valid feature ( do not have values) in the real world data. 
+> QQ - Removing features based on validation set - can this result in overfitting. Not in this case as we removed features that had no valid data at all.
+
+With the reduced training set, lets see if we are now looking at a training set which has has feature that are dense ( i.e do not have NA's)
+
+```{r}
+trainSubSetFeatureDensity=sapply(c,function(z) round(100*sum(!is.na(z))/nrow(trainingSubSet),2))
 ```
 
-We observe of a total of `r ncol(trainingSubSet)` features in the data set there are `r length(vFeaturesWithNoData2[vFeaturesWithNoData2!=100])` features with 'NA' values. So we are now looking at a fully dense training data.
+We observe of a total of `r ncol(trainingSubSet)` features in the data set there are `r length(trainSubSetFeatureDensity[trainSubSetFeatureDensity==100])` features which are 100% dense ( i.e. have 100% non NA values). 
 
-***Explore the data set***
+### Convert Factor variables to integers
 
+The resuting set still has factor variables and these need to be coverted to integers before any processing can be done. 
+
+```{r}
+dummies=dummyVars(classe~.,data=trainingSubSet, levelsOnly=FALSE)
+trainingSubSetNoFactors=as.data.frame(predict(dummies,newdata=trainingSubSet))
+trainingSubSetNoFactors$classe<-trainingSubSet$classe
+
+#Remove Factors in TestDataSet
+dummies=dummyVars(classe~.,data=testSubSet, levelsOnly=FALSE)
+testSubSetNoFactors=as.data.frame(predict(dummies,newdata=testSubSet))
+testSubSetNoFactors$classe<-testSubSet$classe
+```
+
+Split the test data into K=10 sets, each set containing rows randomly choosen from the test data. Each of the K-folds will be used for cross validation.
+
+```{r}
+#Make Multiple subsets out of testSubSet
+set.seed(mySeed)
+x=createFolds(testSubSetNoFactors$classe,k=10)
+testSubSetNoFactors1=testSubSetNoFactors[x[[1]],]
+testSubSetNoFactors2=testSubSetNoFactors[x[[2]],]
+testSubSetNoFactors3=testSubSetNoFactors[x[[3]],]
+testSubSetNoFactors4=testSubSetNoFactors[x[[4]],]
+testSubSetNoFactors5=testSubSetNoFactors[x[[5]],]
+testSubSetNoFactors6=testSubSetNoFactors[x[[6]],]
+testSubSetNoFactors7=testSubSetNoFactors[x[[7]],]
+testSubSetNoFactors8=testSubSetNoFactors[x[[8]],]
+testSubSetNoFactors9=testSubSetNoFactors[x[[9]],]
+testSubSetNoFactors10=testSubSetNoFactors[x[[10]],]
+```
+Converting the factor variable to integers increase the number of columns to `r ncol(trainingSubSetNoFactors)`
+
+## Explore the dataset to identify features.
 The objective here is to find features that in the data set that could be used to train the model. A feature usually the subset of the predictors that exibit a high correlation to the prediction. 
 
-
-```r{}
+```{r}
 library(corrplot)
-corMatrix = cor(traningSet[,c(1,3,4,7,8)])
-corrplot(corMatrix, method="number")
+corMatrix = cor(trainingSubSetNoFactors[,-85])
+#corrplot(corMatrix, method="number")
+diag(corMatrix) = 0
+which(corMatrix > 0.95, arr.ind=T)
+```
+
+"total_accel_belt" and "roll_belt" show a very high correlation. Lets explore these as predictors in relation to the prediction ( "classe")
+
+```{r}
+library(ggplot2)
+ggplot(data=trainingSubSetNoFactors, aes(x=total_accel_belt, y=roll_belt)) + 
+    geom_point(aes(color=classe))
+
+ggplot(data=trainingSubSetNoFactors, aes(x=gyros_forearm_z, y=gyros_dumbbell_z)) + 
+    geom_point(aes(color=classe))
 ```
 
 
+## Use 2 diffirent models to Predict the outcomes
 
 
+### Use "RParts" with PCA
+
+```{r}
+#library(caret)
+preProc=preProcess(trainingSubSetNoFactors[,-85],method="pca", thresh=0.95)
+trainPC=predict(preProc,trainingSubSetNoFactors[,-85])
+
+if(file.exists("ModelFitRPartsPCA.rds")) {
+    modelFitRPartsPCA<-readRDS("ModelFitRPartsPCA.rds")
+} else{
+    modelFitRPartsPCA<-train(trainingSubSetNoFactors$classe~.,method="rpart",data=trainPC)
+    saveRDS(modelFitRPartsPCA,"ModelFitRPartsPCA.rds")
+}
+
+
+print(modelFitRPartsPCA$finalModel)
+
+testPC=predict(preProc,testSubSetNoFactors1[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors1$classe, predict(modelFitRPartsPCA, testPC))
+```
+
+### Use "Random Forest" with PCA
+
+```{r}
+library(randomForest)
+preProc=preProcess(trainingSubSetNoFactors[,-85],method="pca", thresh=0.95)
+trainPC=predict(preProc,trainingSubSetNoFactors[,-85])
+
+if(file.exists("ModelFitRForest.rds")) {
+    modelFitRForest<-readRDS("ModelFitRForest.rds")
+} else {
+    modelFitRForest<-train(trainingSubSetNoFactors$classe~.,method="rf",data=trainPC)
+    saveRDS(modelFitRForest,"ModelFitRForest.rds")
+}
+
+print(modelFitRForest$finalModel)
+
+testPC=predict(preProc,testSubSetNoFactors1[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors1$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors2[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors2$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors3[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors3$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors4[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors4$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors5[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors5$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors6[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors6$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors7[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors7$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors8[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors8$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors9[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors9$classe, predict(modelFitRForest, testPC))
+
+testPC=predict(preProc,testSubSetNoFactors10[,-85]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSetNoFactors10$classe, predict(modelFitRForest, testPC))
+
+
+```
+
+
+### Use "RParts" with a few features that show a high correlation to the predicted value.
+```{r}
+#library(caret)
+cutTraining=trainingSubSetNoFactors[,c("total_accel_belt","roll_belt","classe")]
+cutTest=testSubSetNoFactors1[,c("total_accel_belt","roll_belt","classe")]
+preProc=preProcess(cutTraining[,-3])
+trainPC=predict(preProc,cutTraining[,-3])
+
+if(file.exists("ModelFitRParts.rds")) {
+    modelFitRParts<-readRDS("ModelFitRParts.rds")
+} else {
+    modelFitRParts<-train(trainingSubSetNoFactors$classe~.,method="rpart",data=trainPC)
+    saveRDS(modelFitRParts,"ModelFitRParts.rds")
+}
+
+print(modelFitRParts$finalModel)
+
+testPC=predict(preProc,cutTest[,-3]) #Apply the same preprocessing to testset.
+confusionMatrix(cutTest$classe, predict(modelFitRParts, testPC))
+```
+
+## Appendix
+Too many features. first check for features that have very low variance and thus can be eliminated.
+```{r}
+#nsv=nearZeroVar(ex,saveMetric=TRUE)
+#nsv
+```
+
+
+***Principal Component Analysis***
+```{r}
+#library(caret)
+#prComp<-prcomp(ex)
+
+```
