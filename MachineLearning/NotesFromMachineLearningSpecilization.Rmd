@@ -2,23 +2,27 @@
 title: "Notes from Machine Learning specilization (Coursera) Aug 2015"
 author: "Shiv"
 date: "Thursday, July 30, 2015"
-output: html_document
+output: word_document
 ---
-##MAchine learning can be summarized as a set of following steps. 
-###Question
+## MAchine learning can be summarized as a set of following steps. 
+### Question
 The most imporant of all the step. Having a question is the first and foremost step for building an insights.
 If the question is not valuable, the ingight would not be useful. So spend time articulating and quantifing the question and evaluating the business value of your question. To drive the thought process on the business value of a question. think of decisions that this question would enable and quantify the value in terms of the decision you would take.
 
-###The input data
+### The input data
 Garbage in -> Gargabe Out. So take time to find/clean/structure the data that is most appropriate to answer the question. Many a times there may not be good data for the question and useless to do all the data processing on the not so appropriate data you have. 
 Another important and often ignored step. Sampling the data right. Dividing the data into training and test sets. Wrong samling implies that your insight would not be representative of the population. 
 
 ###Identify Features
 What characteristics of the data can help answer the question. Identification,  selectin and quantifcation of of the these charactersitics helps build inputs for your predictor.
 
-###Identify Alorithm
-An important , but over rated step. Important because no prediction can happen without the essential machine learning logic. Overrated, because diffirence between prediction 
-accuracy of 'best in class' v/s simple algorithms is not large and often do not justify the assocaited cost. Also there are various trade-offs that an algo should consider.
+### Identify Alorithm
+An important , but over rated step. Important because no prediction can happen without the essential machine learning logic. Overrated, because diffirence between prediction accuracy of 'best in class' v/s simple algorithms is not large and often do not justify the assocaited cost. Also there are various trade-offs that an algo should consider.
+
+e.g. netflix paid $1million for the netflix prize, but the algo was  never implemented - one of the reasons being the cost v/s benefit ( improvemnet in accuracy).
+
+[A comparison of machihne learning algos] http://thinkingmachineblog.net/a-comparison-of-machine-learning-algorithms/
+Note: "There is no free lunch. Symbolic regression is substantially more computationaly intensive when compared to neural networks, SVMs and Linear regression."
 
 * Trade-Off's to consider
     + Interpretable
@@ -27,55 +31,55 @@ accuracy of 'best in class' v/s simple algorithms is not large and often do not 
     + Scalable
     + Fast ( to Train)
 
-[A comparison of machihne learning algos] http://thinkingmachineblog.net/a-comparison-of-machine-learning-algorithms/
-Note: "There is no free lunch. Symbolic regression is substantially more computationaly intensive when compared to neural networks, SVMs and Linear regression."
-
-e.g. netflix paid $1million for the netflix prize, but the algo was  never implemented - one of the reasons being the cost v/s benefit ( improvemnet in accuracy).
-
-###Validate
+### Validate model with test data
 Using the test data to have a good understanding of the prediction accuracy.
 
 ### Tune your model to the signal and not the noise in the sample data set
-A algo is trained using the training data from the sample and then tested using the subset of the sample data called test data. Prediction errors are classified as *in-sample errors* or *out sample errors*. A high *in-sample error* which a high *out sample error* implies a overfitted model - i.e. a model that is tuned to signal and noise in the sample data - so work great of the sample data , but is not a good predictor in on out of sample data.
+A algo is trained using the training data from the sample and then tested using the subset of the sample data called test data. Prediction errors are classified as *in-sample errors* or *out sample errors*. A high *in-sample error* with a high *out sample error* implies a overfitted model - i.e. a model that is tuned to signal and noise in the sample data - so the model works great of the sample data , but is not a good predictor in on out of sample data.
+
+A good prediction study design can help reduce out of sample error.
 
 
-###Prediction Study Design
-A good study design can help reduce the  out of sample error. A good study design divides the data into traning, test and validation. Training data is used to train the model, test data is used to test the model for its prediction and validation data is used to find the out of sample error. The diffirence between test and validation data is that 'validation' data is used only once i.e its it used to only evaluate the model for its predictability and not to improve it. This technique ensures that the the model is not overfitted to the data that is used to check the sucess of the prediction. As a rule of thum, have a set of data that you use once and only once to check the success of your prediction.
+### Prediction Study Design
+A good study design can help reduce the  out of sample error. A good study design divides the data into traning, test and validation. Training data is used to train the model, test data is used to test the model for its prediction and validation data is used to find the out of sample error. The diffirence between test and validation data is that 'validation' data is used only once i.e its it used to only evaluate the model for its predictability and not to improve it. This technique ensures that the the model is not overfitted to the data that is used to check the sucess of the prediction. As a rule of thumb, have a set of data that you use once and only once to check the success of your prediction.
 
 Split of data in a study desing may be - 60% train, 20% test and 20% validate. As the data is split into these sets ensure that right samples are created. The samples must suite the the problem type, e.g. if you have a time series data, ensure that each of the sets have samples across time.
 
-Splitting  the data may results in small sample size. Small sample sizes increase the possibility of a correct prediction. Large sample sizes reduce the possibility of a correct prediction. So test your models with large samples sizes and if they precidtions are correct that you know that the models are good and not producing accurate results as a matter of chance.
+Splitting  the data may results in small sample size. Small sample sizes increase the possibility of a correct prediction. Large sample sizes reduce the probability of correct prediction. So test your models with large samples sizes and if they precidtions are correct that you know that the models are good and not producing accurate results as a matter of chance.
 As an example consider a model that produces a binary output ( pass or fail). If the sample size if 1, then the chance that the model correctly identify the outcome is 50% , which is high , but note that that this equivacent to the flipping of the coin. Now if the sample size is 2 then the change that the random model will identify the correct outcome is 25%. and if sample size is **n**, then the change of a random model giving a correct answer is $(1/2)^n$. So if your model gives a correct answer with a large enought sample data, you know that its not luck by chance, but your model is really really good!
 
-###Evaluting the prediction model for accuracy and errors
+### Evaluting the prediction model for accuracy and errors
 Now that you ahve done all the hard work and finally have predictions in place. How do you evalate the real world success/error from your model and how great if your model in comarision to one that is generating randow number or to others parallel models you have.
 
-####Truth Tables. 
+#### Truth Tables. 
       - True Postitive, 
       - False Positive, 
       - True Negative, 
       - False Negative.
-####Prediction Error evaluation
-    - Sensitivity  - Predictitive Positives/Total Positives. How good the predition in identifing the positives.
-    - Specificity - Predicted True Negatives/Total Negatives. How good the prediction is in identifing the negatives.
+#### Prediction Error evaluation
+    - Sensitivity  - Predictitive Positives/Total Positives. How good the predition in identifing the positives?
+    - Specificity - Predicted True Negatives/Total Negatives. How good the prediction is in identifing the negatives?
     - Accurancy of prediction - (TP + TN)/Total Sample Population
     
 More and better explained [prediction errors] https://class.coursera.org/predmachlearn-031/lecture/15 
 
-####ROC (Receiver operating characteristics) and AOC
+#### ROC (Receiver operating characteristics) and AOC
 Curves plotting Probability of Sensitivity /Specifificy.
 Area under the curve indicates how good the prediction is. Area of 1 is 100% prediction accuracy, 0.5 implies as good as random. 0.8 is usually considered a good prediction algo.
 [ROC curves and AOC] https://class.coursera.org/predmachlearn-031/lecture/17
  
-### Finding the right data, preprocessing and cloeaning the data
-One of the improtant steps in machine learning is to know your data and clean/process it to be better suitable as input for the machine learning algorithms.
-Study Design - Reduce out of sample error by creating training and test sets. Use the training set for all activities.
+# Getting Practical - Study Desing, Understadning your data and Transforming it to be suitable for machine learning algo
+One of the improtant steps in machine learning is to "know your data", "clean/process" it to be suitable as input for the machine learning algorithms.
+Study Design - .
 Know your data - Perform explorator analysis on data to understand features on what your prediction would depend.
 Preprocess data - Often you would find that the "feature" predictors have high variability and must be transformed before being used.
 
-***Study Desing - Creating training and test subsets***
+## Study Design - How do you split data to training and test sets?
+Reduce out of sample error by creating training and test sets. Use the training set for all activities
 
+How do you split the data to training and test sets? 
 First of all know what you are predicting. For this excercise let **CompressiveStrengt** be the prediction.
+
 Now create training sets and test sets.
 
 ```{r}
@@ -90,20 +94,43 @@ nrow(testSet)
 
 ```
 
-***Know your data - Exploratory analysis to find features for your prediction***
+### Know your data - Exploratory analysis to understand if the data needs to be transformed.
 
 Objective 
-- Understand the data you are dealing with.
+- Understand the data you are dealing with. 
 - Identify set of features that you would use to predict.
+- Does the data need to be transformed before it is used.
+
+> QQ - Why should the data be transformed at all? How does "log" tranform help. Probably the answer is that most prediction 
+algorithnms work better when the predictors follow a normal distribution (Why?) and thus any non normallly distributed predictors have to be normalized.
+
+> QQ  - Why and When to use LOG to normalize data. [link] http://stats.stackexchange.com/questions/18844/when-and-why-to-take-the-log-of-a-distribution-of-numbers.
 
 Methodology
 - Understand what the data set and columns mean. Get documentation.
 - Understand the correlation between the prediction and predictors. 
 - And correlation between the predictors themselves.
 
+
+#### Understand your data
+
 The concrete dataset provides real data on mixtures and quanities used and the resulting strength of the concrete. 
 [link] http://archive.ics.uci.edu/ml/datasets/Concrete+Compressive+Strength
 [link] https://cran.r-project.org/web/packages/AppliedPredictiveModeling/AppliedPredictiveModeling.pdf
+
+#### Explore - Do you need to transform? What transformation should you apply?
+Think if you are predicting the strength of cement using the SuperPlasticizer data. What's the variation of the "Superplasticizer" data. Is it distrubited in a normal distribution?  From the following we note that "Superplasticizer" data is not normally distributed.
+
+```{r echo=FALSE}
+library(ggplot2)
+#ggplot(data=trainingSet,aes(x=Cement))+ geom_histogram(color="black")
+ggplot(data=trainingSet,aes(x=Superplasticizer)) + geom_histogram(color="black")
+```
+What's the right transformation to use to normalize this data?
+* Log Transformation
+    + Apply When?
+* Box-Cox Transformation
+    + Apply When?
 
 ```{r echo=FALSE}
 #require(gridExtra)
@@ -114,7 +141,7 @@ featurePlot(x=trainingSet[,c("Cement","Water","Superplasticizer", "Age")],
             y=trainingSet$CompressiveStrength, 
             plot="scatter",
             type = c("p", "smooth"),
-            layout = c(2, 2))
+            layout = c(2, 2) )
 #grid.arrange(plot1,fPlot, ncol=2)
 ```
 
@@ -131,8 +158,8 @@ ProcessedObject = preProcess(trainingSet[,-9],method="knnImpute")
 
 The following applies 2 diffirent transformations to the predictors and shows how BoxCox transforms a not so normal predictor to a normal distribution.
 
-Question : Why normalize?
-Question : What's so special about a normal distribution?
+> QQ Question : Why normalize?
+> QQ Question : What's so special about a normal distribution?
 
 ```{r echo=FALSE}
 require(gridExtra)
@@ -162,7 +189,11 @@ is to use the training set values to normalize the test set and not to use test 
 testSet$Normalized_Cement_BoxCox = predict(trainingSet_BoxCox_Normalized,testSet[,-9])$Cement
 ```
 
-***Question 3 : What's the need of Principal component analysis. and why do we need one***
+####  What's PCA ? Why use it
+The basic idea around PCA ( Principle component analysis) is to find a set of features that capture most of the information. PCA answers the question - What are the key set of features that the prediction depends on? 
+
+PCA reduices the number of features that are used for the prediction and makes data processing lighter. 
+
 
 ```{r}
 library(caret)
@@ -174,8 +205,50 @@ inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
 training = adData[ inTrain,]
 testing = adData[-inTrain,]
 tsubset=subset(training,select=c(IL_11,IL_13,IL_16,IL_17E,IL_1alpha,IL_3,IL_4,IL_5,IL_6,IL_6_Receptor,IL_7,IL_8))
+preProcess(tsubset,method="pca",thresh=0.8)
+```
+
+Let's check the accuracy of the prediction in 2 scenarions. In one lets use all the feature and in the other just use the features that give explain 60% of the variablility.
+
+```{r}
+library(caret)
+library(AppliedPredictiveModeling)
+set.seed(3433)
+data(AlzheimerDisease)
+adData = data.frame(diagnosis,predictors)
+inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
+tsubset=subset(training,select=c(IL_11,IL_13,IL_16,IL_17E,IL_1alpha,IL_3,IL_4,IL_5,IL_6,IL_6_Receptor,IL_7,IL_8))
+testSubset=subset(testing,select=c(IL_11,IL_13,IL_16,IL_17E,IL_1alpha,IL_3,IL_4,IL_5,IL_6,IL_6_Receptor,IL_7,IL_8))
+
+#Build a model that uses PCA that explain 80% variability.
+preProc=preProcess(tsubset,method="pca", thresh=0.8) #Preprocess to get PCAs that explain 80% variability.
+#Apply the preprocessing to the training set to create a training set using PCAs rather than those with orignal variables.
+#Note that predict applies the functions of the first argument to the data passed.
+trainPC=predict(preProc,tsubset)
+
+modelFit=train(training$diagnosis~.,method="glm",data=trainPC)
+
+testPC=predict(preProc,testSubset) #Apply the same preprocessing to testset.
+confusionMatrix(testing$diagnosis, predict(modelFit, testPC))
+
+
+#Build a model that with all features.
+preProc=preProcess(tsubset) #No preprocessing. Just take all features.
+#Apply the preprocessing to the training set to create a training set using PCAs rather than those with orignal variables.
+#Note that predict applies the functions of the first argument to the data passed.
+trainPC=predict(preProc,tsubset)
+
+modelFit=train(training$diagnosis~.,method="glm",data=trainPC)
+
+testPC=predict(preProc,testSubset) #Apply the same preprocessing to testset.
+confusionMatrix(testing$diagnosis, predict(modelFit, testPC))
 
 ```
+
+
+
 
 #### Get some practice
 Quiz2 from the machine learning course
