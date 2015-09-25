@@ -31,7 +31,7 @@ As a next step, first split the data as training and test set. Then use the trai
 ```{r}
 library(caret)
 set.seed(mySeed)
-trainIndex=createDataPartition(df$classe,p=0.8,list=FALSE)
+trainIndex=createDataPartition(df$classe,p=0.6,list=FALSE)
 trainingSet=df[trainIndex,]
 testSet=df[-trainIndex,]
 ```
@@ -66,6 +66,11 @@ colsToDrop=validationSetSparseness[validationSetSparseness!=0]
 ```{r}
 trainingSubSet=trainingSet[,-which(names(trainingSet) %in% names(colsToDrop))]
 testSubSet=testSet[,-which(names(testSet) %in% names(colsToDrop))]
+validationSubSet=validationSet[,-which(names(validationSet) %in% names(colsToDrop))]
+trainingSubSet<-trainingSubSet[,-c(1,2,3,4,5,6,7)]
+testSubSet<-testSubSet[,-c(1,2,3,4,5,6,7)]
+validationSubSet<-validationSubSet[,-c(1,2,3,4,5,6,7)]
+
 ```
 Dropping the columns we have removed features in the training set that are not valid feature ( do not have values) in the real world data. 
 > QQ - Removing features based on validation set - can this result in overfitting. Not in this case as we removed features that had no valid data at all.
@@ -91,6 +96,10 @@ trainingSubSetNoFactors$classe<-trainingSubSet$classe
 dummies=dummyVars(classe~.,data=testSubSet, levelsOnly=FALSE)
 testSubSetNoFactors=as.data.frame(predict(dummies,newdata=testSubSet))
 testSubSetNoFactors$classe<-testSubSet$classe
+
+#Remove Factors in ValidationDataSet
+dummies=dummyVars(problem_id~.,data=validationSubSet, levelsOnly=FALSE)
+validationSubSetNoFactors=as.data.frame(predict(dummies,newdata=validationSubSet))
 ```
 
 Split the test data into K=10 sets, each set containing rows randomly choosen from the test data. Each of the K-folds will be used for cross validation.
@@ -117,7 +126,7 @@ The objective here is to find features that in the data set that could be used t
 
 ```{r}
 library(corrplot)
-corMatrix = cor(trainingSubSetNoFactors[,-85])
+corMatrix = cor(trainingSubSetNoFactors[,-53])
 #corrplot(corMatrix, method="number")
 diag(corMatrix) = 0
 which(corMatrix > 0.95, arr.ind=T)
@@ -142,20 +151,20 @@ ggplot(data=trainingSubSetNoFactors, aes(x=gyros_forearm_z, y=gyros_dumbbell_z))
 
 ```{r}
 #library(caret)
-preProc=preProcess(trainingSubSetNoFactors[,-85],method="pca", thresh=0.95)
-trainPC=predict(preProc,trainingSubSetNoFactors[,-85])
+preProc=preProcess(trainingSubSetNoFactors[,-53],method="pca", thresh=0.95)
+trainPC=predict(preProc,trainingSubSetNoFactors[,-53])
 
-if(file.exists("ModelFitRPartsPCA.rds")) {
-    modelFitRPartsPCA<-readRDS("ModelFitRPartsPCA.rds")
+if(file.exists("models/ModelFitRPartsPCA.rds")) {
+    modelFitRPartsPCA<-readRDS("models/ModelFitRPartsPCA.rds")
 } else{
     modelFitRPartsPCA<-train(trainingSubSetNoFactors$classe~.,method="rpart",data=trainPC)
-    saveRDS(modelFitRPartsPCA,"ModelFitRPartsPCA.rds")
+    saveRDS(modelFitRPartsPCA,"models/ModelFitRPartsPCA.rds")
 }
 
 
 print(modelFitRPartsPCA$finalModel)
 
-testPC=predict(preProc,testSubSetNoFactors1[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors1[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors1$classe, predict(modelFitRPartsPCA, testPC))
 ```
 
@@ -163,50 +172,58 @@ confusionMatrix(testSubSetNoFactors1$classe, predict(modelFitRPartsPCA, testPC))
 
 ```{r}
 library(randomForest)
-preProc=preProcess(trainingSubSetNoFactors[,-85],method="pca", thresh=0.95)
-trainPC=predict(preProc,trainingSubSetNoFactors[,-85])
+preProc=preProcess(trainingSubSetNoFactors[,-53],method="pca", thresh=0.7)
+trainPC=predict(preProc,trainingSubSetNoFactors[,-53])
 
-if(file.exists("ModelFitRForest.rds")) {
-    modelFitRForest<-readRDS("ModelFitRForest.rds")
+if(file.exists("models/ModelFitRForest.rds")) {
+    modelFitRForest<-readRDS("models/ModelFitRForest.rds")
 } else {
     modelFitRForest<-train(trainingSubSetNoFactors$classe~.,method="rf",data=trainPC)
-    saveRDS(modelFitRForest,"ModelFitRForest.rds")
+    saveRDS(modelFitRForest,"models/ModelFitRForest.rds")
 }
 
 print(modelFitRForest$finalModel)
 
-testPC=predict(preProc,testSubSetNoFactors1[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors1[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors1$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors2[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors2[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors2$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors3[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors3[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors3$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors4[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors4[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors4$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors5[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors5[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors5$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors6[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors6[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors6$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors7[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors7[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors7$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors8[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors8[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors8$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors9[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors9[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors9$classe, predict(modelFitRForest, testPC))
 
-testPC=predict(preProc,testSubSetNoFactors10[,-85]) #Apply the same preprocessing to testset.
+testPC=predict(preProc,testSubSetNoFactors10[,-53]) #Apply the same preprocessing to testset.
 confusionMatrix(testSubSetNoFactors10$classe, predict(modelFitRForest, testPC))
 
 
 ```
+# Use the best model and generate results.
+Random forest - PCA 0.7 - with 80% training data, gave results  : ##  [1] A A A A A E D B A A A C B A E E A B B B
+```{r}
+validationPC=predict(preProc,validationSubSetNoFactors) #Apply the same preprocessing to testset.
+predict(modelFitRForest,validationPC)
+```
+
+
 
 
 ### Use "RParts" with a few features that show a high correlation to the predicted value.
@@ -217,11 +234,11 @@ cutTest=testSubSetNoFactors1[,c("total_accel_belt","roll_belt","classe")]
 preProc=preProcess(cutTraining[,-3])
 trainPC=predict(preProc,cutTraining[,-3])
 
-if(file.exists("ModelFitRParts.rds")) {
-    modelFitRParts<-readRDS("ModelFitRParts.rds")
+if(file.exists("models/ModelFitRParts.rds")) {
+    modelFitRParts<-readRDS("models/ModelFitRParts.rds")
 } else {
     modelFitRParts<-train(trainingSubSetNoFactors$classe~.,method="rpart",data=trainPC)
-    saveRDS(modelFitRParts,"ModelFitRParts.rds")
+    saveRDS(modelFitRParts,"models/ModelFitRParts.rds")
 }
 
 print(modelFitRParts$finalModel)
