@@ -1,19 +1,28 @@
 ---
-title: "FitBot"
+title: "YoFitBot"
 author: "Shiv"
 date: "Tuesday, August 18, 2015"
 output: html_document
 pandoc_args: ["+RTS", "-K64m","-RTS"]
 ---
-FitBot, you personal fitness training Bot, monitors your excercise and provide real time supervision, correction and grading of your excercise routine. FitBot is trained using state of art machine learning algorithms and uses training data made avaialble by  [groupware.les] http://groupware.les.inf.puc-rio.br/har. 
+YoFitBot, **Yo**ur personal **Fit**ness training **Bot**, monitors your excercise and provide real time supervision and grading of your excercise routine. FitBot is trained using state of art machine learning algorithms and uses training data made avaialble by  [groupware.les](http://groupware.les.inf.puc-rio.br/har) . This paper describes the buliding of the YoFitBot. Note that this work is done as project assignment for the fabulous Machine Learning Course from John Hopkins ( provided via Coursera). For more details check [John Hopkins Data Science Specialization](https://www.coursera.org/specializations/jhudatascience)
 
+The data is available as Training and Validation Set. The prediction here is **classe** variable, that grades the training as "A", "B", "C", "D", "E". Training Set [Provided TrainingData](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) contains the complete data, while the validation set [Provided Validation Data](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv) contains the predictors/feature variables but does not disclose the classe variable (the prediction). The validation set is considered out of sample data and is used to check the model in real world conditions. Results from the validation test are scored with a max of 2 trials allowd to get the results right. 
 
+Training of YoFitBot uses the following steps. Each of the steps is detailed in sections that follow.
 
-The data is already split as Training and Validation Set. Training Set ( loaded from "pml-training.csv") contains the complete data, while the validation set (loadable from "pml-testing.csv") contains the predictor/feature variables but not the prediction result variable. The validation set is considered out of same data and is used to check the model in real world conditions, which allows you 2 trials to precit the type of excercise. The best machine learning algorithms when applied on out of sample data predicted 17 of the 20 outcome correctly, giving a accuracy of 85%.
+* Data loading and Training and Test Set creation
+* Data cleaning and creation of Training and Test Sets
+* Exploratory data analysis to identify features and PCA to reduce dimensionality
+* Training multiple Models
+* Evaluating Model accuracy using cross validation
+* Applying the best models to Validation set and check accuracy score on out of sample data
 
-The following details on the bulding of the machine learning algoritms and princples.
+3 models _Rparts(WithPCA)_ , _RParts(WithoutPCA)_ and _RandomForest(WithPCA)_ are evaludated. Of these _RParts_ models evaluates to  an accuracy of 0.3, _RandomForest_ based models show an accuracy in the range of 0.75 and 0.9 ( based on the training sample set). The _RandomForest_ model is used on the Validation set and results scored. This accurately identified 17 of the 20 test giving an accuracy of 0.85 in real world conditions ( first trial). To correct the 3 wrong results ( second trial ) training set was  re-sampled and _RandomForest_ model trained again. This application corrects the 3 wrong results giving the method an accuracy of 100% post second trial.  
 
-## Loading and splitting data into Training and TestSet
+The following sections details on the bulding of the machine learning algoritms and princples.
+
+## Data Cleaning and Creation of Training and Test Sets
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 WKDir="C:/Users/shivsood/Documents/GitHub/param/MachineLearning/CourseProject"
@@ -24,19 +33,17 @@ mySeed="02121976"
 
 library(caret)
 set.seed(mySeed)
-trainIndex=createDataPartition(df$classe,p=0.2,list=FALSE)
+trainIndex=createDataPartition(df$classe,p=0.4,list=FALSE)
 trainingSet=df[trainIndex,]
 testSet=df[-trainIndex,]
 
 ```
-The data is split as training and test set. The training set would be used for further exploration and traning the model. The test data would be used for testing the model for its predicted accuracy. From `r nrow(df)` rows of original data, the training set consist of `r nrow(trainingSet)` rows and testSet contains `r nrow(testSet)` rows of data now.
-
-##Explore, Clean/Scrub the Training Set
-
-At first lets explore the data by normal read out of the data. Some observations to make
+A read out of the data and few observations made
 
 * There are 3 type of variables - int, num and factors. Note : Factor variables need to be covereted before any applicaiton.
 * Lots of variables seem are NA. Would be intresting to explore columns that are sparse to the extend they could be removed.
+
+The data is split as initial training and test set that are they cleaned. From `r nrow(df)` rows of original data, the training set consist of `r nrow(trainingSet)` rows and testSet contains `r nrow(testSet)` rows of data now.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 # trainSetSparseness is a measure of sparseness of each of the columns of the training set
@@ -85,132 +92,160 @@ testSubSetNoFactors5=testSubSetNoFactors[x[[5]],]
 testSubSetNoFactors6=testSubSetNoFactors[x[[6]],]
 testSubSetNoFactors7=testSubSetNoFactors[x[[7]],]
 testSubSetNoFactors8=testSubSetNoFactors[x[[8]],]
-testSubSetNoFactors9=testSubSetNoFactors[x[[9]],]
-testSubSetNoFactors10=testSubSetNoFactors[x[[10]],]
+
+# Re-Juggle and create 3 sets of training sets. 
+trainingSubSet1<-trainingSubSetNoFactors
+trainingSubSet2<-testSubSetNoFactors[x[[9]],]
+trainingSubSet3<-testSubSetNoFactors[x[[10]],]
+
+# and 8 testing sets.
+testSubSet1<-testSubSetNoFactors1
+testSubSet2<-testSubSetNoFactors2
+testSubSet3<-testSubSetNoFactors3
+testSubSet4<-testSubSetNoFactors4
+testSubSet5<-testSubSetNoFactors5
+testSubSet6<-testSubSetNoFactors6
+testSubSet7<-testSubSetNoFactors7
+testSubSet8<-testSubSetNoFactors8
 ```
 
 
-Of the `r ncol(trainingSet)` features in the training data set there are `r length(trainSetSparseness[trainSetSparseness!=0])` features that have on an average have `r mean(trainSetSparseness[trainSetSparseness!=0])`% their values as **NAs**. These are very sparse colums and not very usable to be used as a predictors. Does the validation set shows the same pattern? Of the `r ncol(validationSet)` features in the validation data set there are `r length(validationSetSparseness[validationSetSparseness!=0])` features that have `r mean(validationSetSparseness[validationSetSparseness!=0])`% of their values as **NAs**. This basically implies that `r length(validationSetSparseness[validationSetSparseness!=0])` can be **dropped** from the training and test sets. For a list of columns that are dropped refer Appendix "Dropped feature". Dropping these columns we have removed features in the training set that are not valid feature ( do not have values) in the real world data and thus would have no impact on the prediction. 
+Of the `r ncol(trainingSet)` features in the training data set there are `r length(trainSetSparseness[trainSetSparseness!=0])` features that have on an average have `r mean(trainSetSparseness[trainSetSparseness!=0])`% their values as _NAs_. These are very sparse colums and not very usable to be used as a predictors. Does the validation set shows the same pattern? Of the `r ncol(validationSet)` features in the validation data set there are `r length(validationSetSparseness[validationSetSparseness!=0])` features that have `r mean(validationSetSparseness[validationSetSparseness!=0])`% of their values as _NAs_. This basically implies that `r length(validationSetSparseness[validationSetSparseness!=0])` can be dropped from the training and test sets. For a list of columns that are dropped refer Appendix "Dropped feature". Dropping these columns we have removed features in the training set that are not valid feature ( do not have values) in the real world data and thus would have no impact on the prediction. 
 
 Post processing ( removal of sparse cols) the training set has a total of `r ncol(trainingSubSet)` features of which `r length(trainSubSetFeatureDensity[trainSubSetFeatureDensity==100])` features which are 100% dense ( i.e. have 100% non NA values). The same processing is applied to Test and Validation Set.
 
-The Test set is now split into K=10 sets, each set containing rows randomly. Each of the 10-folds will be used for cross validation of multiple models. Each of the 10 test folds would be used on 1 and only 1 model that we construct. These reduces the possibility of creating models that overfit to any given data set.
+The Training data is split into 11 diffirent subsets that are they used to arrive at the final Training and Test Sets. Multiple training and test subsets are identified to introduce cross validtion and thus reduce overfitting models. Of the 11 sets,  3 would be used to train the models and 8 are retained as tests set. 
 
-## Explore the dataset to identify features.
+The 3 training set, called _trainingSubSet1_, _trainingSubSet2_ and _trainingSubSet3_,  have `r nrow(trainingSubSet1)`, `r nrow(trainingSubSet2)` and `r nrow(trainingSubSet3)` respectively. 
+
+The 8 test, called _testSubSet1_ .. _testSubSet8_, have  `r nrow(testSubSet1)`, `r nrow(testSubSet2)`, `r nrow(testSubSet3)` `r nrow(testSubSet4)`, `r nrow(testSubSet5)`, `r nrow(testSubSet6)`, `r nrow(testSubSet7)`  and `r nrow(testSubSet8)` rows respectively.
+
+## Exploratory data analysis to identify features and PCA to reduce dimensionality
 Explore feature that show high correlation to see these how these influence the predictor. 
 
-```{r}
+```{r warning=FALSE, message=FALSE}
 library(corrplot)
-corMatrix = cor(trainingSubSetNoFactors[,-53])
-#corrplot(corMatrix, method="number")
+corMatrix = cor(trainingSubSet1[,-53])
 diag(corMatrix) = 0
-#which(corMatrix > 0.80, arr.ind=T)
 corrplot(corMatrix[1:25,1:25],order="AOE",method="circle",sig.level=0.80,insig = "blank")
 corrplot(corMatrix[25:52,25:52],order="AOE",method="circle",sig.level=0.80,insig = "blank")
 ```
 
-"total_accel_belt" and "roll_belt" show a very high correlation. Lets explore these as predictors in relation to the prediction ( "classe")
+From the correlation plots we observe that there are set of variables that exibit high correlation to others. Further plotting of these variables reveals very visible relations between the predicted (classe) and the several features. The relations are not linear and indicating that classification based models are better suited for this prediction (refer to appendix for the plots)
 
-```{r}
-library(ggplot2)
-ggplot(data=trainingSubSetNoFactors, aes(x=total_accel_belt, y=roll_belt)) + 
-    geom_point(aes(color=classe))
+## Model Training
 
-ggplot(data=trainingSubSetNoFactors, aes(x=gyros_forearm_z, y=gyros_dumbbell_z)) + 
-    geom_point(aes(color=classe))
+3 models _Rparts(WithPCA)_ , _RParts(WithoutPCA)_ and _RandomForest(WithPCA)_ are evaludated. The models are then validated using test sets and most accurate models choosen. 
 
-ggplot(data=trainingSubSetNoFactors, aes(x=pitch_belt, y=accel_belt_x)) + 
-    geom_point(aes(color=classe))
+### Using _RParts_ with PCA on features
 
-```
-
-
-## Use 2 diffirent models to Predict the outcomes
-
-
-### Use "RParts" with PCA
-
-```{r}
-#library(caret)
-preProc=preProcess(trainingSubSetNoFactors[,-53],method="pca", thresh=0.95)
-trainPC=predict(preProc,trainingSubSetNoFactors[,-53])
+```{r warning=FALSE, message=FALSE}
+library(caret)
+preProc=preProcess(trainingSubSet1[,-53],method="pca", thresh=0.95)
+trainPC=predict(preProc,trainingSubSet1[,-53])
 
 if(file.exists("models/ModelFitRPartsPCA.rds")) {
     modelFitRPartsPCA<-readRDS("models/ModelFitRPartsPCA.rds")
 } else{
-    modelFitRPartsPCA<-train(trainingSubSetNoFactors$classe~.,method="rpart",data=trainPC)
+    modelFitRPartsPCA<-train(trainingSubSet1$classe~.,method="rpart",data=trainPC)
     saveRDS(modelFitRPartsPCA,"models/ModelFitRPartsPCA.rds")
 }
 
+#print(modelFitRPartsPCA$finalModel)
 
-print(modelFitRPartsPCA$finalModel)
-
-testPC=predict(preProc,testSubSetNoFactors1[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors1$classe, predict(modelFitRPartsPCA, testPC))
+testPC=predict(preProc,testSubSet1[,-53]) #Apply the same preprocessing to testset.
+cf<-confusionMatrix(testSubSet1$classe, predict(modelFitRPartsPCA, testPC))
+cf
 ```
 
-### Use "Random Forest" with PCA
+### Use _RParts_ with features that show a high correlation to the predicted value.
+```{r warning=FALSE, message=FALSE}
+library(caret)
+cutTraining=trainingSubSet1[,c("total_accel_belt","roll_belt","classe")]
+cutTest=testSubSet1[,c("total_accel_belt","roll_belt","classe")]
+preProc=preProcess(cutTraining[,-3])
+trainPC=predict(preProc,cutTraining[,-3])
 
-```{r}
-library(randomForest)
-trainingSubSetNoFactors=testSubSetNoFactors10
-preProc=preProcess(trainingSubSetNoFactors[,-53],method="pca", thresh=0.7)
-trainPC=predict(preProc,trainingSubSetNoFactors[,-53])
-
-if(file.exists("models/ModelFitRForest.rds")) {
-    modelFitRForest<-readRDS("models/ModelFitRForest.rds")
+if(file.exists("models/ModelFitRParts.rds")) {
+    modelFitRParts<-readRDS("models/ModelFitRParts.rds")
 } else {
-    modelFitRForest<-train(trainingSubSetNoFactors$classe~.,method="rf",data=trainPC)
-    saveRDS(modelFitRForest,"models/ModelFitRForest.rds")
+    modelFitRParts<-train(trainingSubSet1$classe~.,method="rpart",data=trainPC)
+    saveRDS(modelFitRParts,"models/ModelFitRParts.rds")
 }
 
-print(modelFitRForest$finalModel)
+#print(modelFitRParts$finalModel)
 
-testPC=predict(preProc,testSubSetNoFactors1[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors1$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors2[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors2$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors3[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors3$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors4[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors4$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors5[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors5$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors6[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors6$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors7[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors7$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors8[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors8$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors9[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors9$classe, predict(modelFitRForest, testPC))
-
-testPC=predict(preProc,testSubSetNoFactors10[,-53]) #Apply the same preprocessing to testset.
-confusionMatrix(testSubSetNoFactors10$classe, predict(modelFitRForest, testPC))
-
-
+testPC=predict(preProc,cutTest[,-3]) #Apply the same preprocessing to testset.
+cf<-confusionMatrix(cutTest$classe, predict(modelFitRParts, testPC))
+cf
 ```
+
+### Use _Random Forest_ with PCA on features
+The following creates 2 Random forest models. The two models are based on diffirent training sets and thus will help reduce the out of sample error further.
+
+**Following illustrates Model 1 constructed with trainingSubSet1**
+
+```{r warning=FALSE, message=FALSE}
+library(randomForest)
+preProc1=preProcess(trainingSubSet1[,-53],method="pca", thresh=0.7)
+trainPC1=predict(preProc1,trainingSubSet1[,-53])
+
+if(file.exists("models/ModelFitRForest1.rds")) {
+    modelFitRForest1<-readRDS("models/ModelFitRForest1.rds")
+} else {
+    modelFitRForest1<-train(trainingSubSet1$classe~.,method="rf",data=trainPC1)
+    saveRDS(modelFitRForest1,"models/ModelFitRForest1.rds")
+}
+
+print(modelFitRForest1$finalModel)
+
+testPC1=predict(preProc1,testSubSet1[,-53]) #Apply the same preprocessing to testset.
+cf1<-confusionMatrix(testSubSet1$classe, predict(modelFitRForest1, testPC1))
+cf1
+```
+
+**Following illustrates model 2 constructed with trainingSubSet2**
+```{r warning=FALSE, message=FALSE}
+library(randomForest)
+preProc2=preProcess(trainingSubSet2[,-53],method="pca", thresh=0.7)
+trainPC2=predict(preProc2,trainingSubSet2[,-53])
+
+if(file.exists("models/ModelFitRForest2.rds")) {
+    modelFitRForest2<-readRDS("models/ModelFitRForest2.rds")
+} else {
+    modelFitRForest2<-train(trainingSubSet2$classe~.,method="rf",data=trainPC2)
+    saveRDS(modelFitRForest2,"models/ModelFitRForest2.rds")
+}
+
+print(modelFitRForest2$finalModel)
+
+testPC2=predict(preProc2,testSubSet1[,-53]) #Apply the same preprocessing to testset.
+cf2<-confusionMatrix(testSubSet1$classe, predict(modelFitRForest2, testPC2))
+cf2
+```
+The 2 random forest models each give a accuracy of `r cf1$Accuracy` and `r cf2$Accuracy` respectively. Evaludation on these 2 models on more testset provides the same level of accuracy ( refer appendix for details ) and thus the 2 models are used for final evalution with the validation set.
+
 # Use the best model and generate results.
-Random forest - PCA 0.7 - with 80% training data, gave results  : ##  [1] A A A A A E D B A A A C B A E E A B B B
-Random forest - PCA 0.7 - with 60% training data, gave results  : ##  [1] A A A A A E D B A A A C B A E E A B B B
-Random forest - PCA 0.7 - with 40% training data, gave results  : ##  [1] B A A C A E D A A A A C B A E E A B D B
-```{r}
-validationPC=predict(preProc,validationSubSetNoFactors) #Apply the same preprocessing to testset.
-results3=predict(modelFitRForest,validationPC)
+Predict results based on the validation set.
 
-results3
+```{r warning=FALSE, message=FALSE}
+validationPC1=predict(preProc1,validationSubSetNoFactors) #Apply the same preprocessing to testset.
+results1=predict(modelFitRForest1,validationPC1)
 
+validationPC2=predict(preProc2,validationSubSetNoFactors) #Apply the same preprocessing to testset.
+results2=predict(modelFitRForest2,validationPC2)
 
+results1
+results2
+```
+
+These results are evaluted with the actual results. result1 and result 2 together gave a accuracy of 100% in 2 trials.
+
+``` {r echo=FALSE, warning=FALSE, message=FALSE}
+#Write to files for assement.
 results1=c("A","A","A","A","A","E","D","B","A","A","A","C","B","A","E","E","A","B","B","B")
 results2=c("B","A","A","C","A","E","D","A","A","A","A","C","B","A","E","E","A","B","D","B")
+results3=c("B","A","A","C","A","E","D","A","A","A","A","C","B","A","E","E","A","B","D","B")
 
 pml_write_files = function(x,fn){
   n = length(x)
@@ -222,32 +257,6 @@ pml_write_files = function(x,fn){
 pml_write_files(results1,"results/result1/")
 pml_write_files(results2,"results/result2/")
 pml_write_files(results3,"results/result3/")
-
-
-```
-
-
-
-
-### Use "RParts" with a few features that show a high correlation to the predicted value.
-```{r}
-#library(caret)
-cutTraining=trainingSubSetNoFactors[,c("total_accel_belt","roll_belt","classe")]
-cutTest=testSubSetNoFactors1[,c("total_accel_belt","roll_belt","classe")]
-preProc=preProcess(cutTraining[,-3])
-trainPC=predict(preProc,cutTraining[,-3])
-
-if(file.exists("models/ModelFitRParts.rds")) {
-    modelFitRParts<-readRDS("models/ModelFitRParts.rds")
-} else {
-    modelFitRParts<-train(trainingSubSetNoFactors$classe~.,method="rpart",data=trainPC)
-    saveRDS(modelFitRParts,"models/ModelFitRParts.rds")
-}
-
-print(modelFitRParts$finalModel)
-
-testPC=predict(preProc,cutTest[,-3]) #Apply the same preprocessing to testset.
-confusionMatrix(cutTest$classe, predict(modelFitRParts, testPC))
 ```
 
 ## Appendix
@@ -256,16 +265,44 @@ confusionMatrix(cutTest$classe, predict(modelFitRParts, testPC))
 The following is the list of columsn that were null/NA in validation set and thus were dropped from the list of candidate 
 `r names(colsToDrop)`
 
-Too many features. first check for features that have very low variance and thus can be eliminated.
+## Understanding potential model fits by plotting high correlation feaures
+
 ```{r}
-#nsv=nearZeroVar(ex,saveMetric=TRUE)
-#nsv
+library(ggplot2)
+ggplot(data=trainingSubSet1, aes(x=total_accel_belt, y=roll_belt)) + 
+    geom_point(aes(color=classe))
+
+ggplot(data=trainingSubSet1, aes(x=gyros_forearm_z, y=gyros_dumbbell_z)) + 
+    geom_point(aes(color=classe))
+
+ggplot(data=trainingSubSet1, aes(x=pitch_belt, y=accel_belt_x)) + 
+    geom_point(aes(color=classe))
+
 ```
+### Testing the 2 random forest models
 
-
-***Principal Component Analysis***
 ```{r}
-#library(caret)
-#prComp<-prcomp(ex)
+# Test 2 models with TestSubSet2
+testPC=predict(preProc1,testSubSet2[,-53]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSet2$classe, predict(modelFitRForest1, testPC))
+
+testPC=predict(preProc2,testSubSet2[,-53]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSet2$classe, predict(modelFitRForest2, testPC))
+
+# Test 2 models with TestSubSet3
+testPC=predict(preProc1,testSubSet3[,-53]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSet3$classe, predict(modelFitRForest1, testPC))
+
+testPC=predict(preProc2,testSubSet3[,-53]) #Apply the same preprocessing to testset.
+confusionMatrix(testSubSet3$classe, predict(modelFitRForest2, testPC))
 
 ```
+### Challanges and Issues
+* Training Random Forest takes a lot of time.
+* Explore if further data transformation can reduce model construction times without compromizing accuracy.
+
+
+### Links and Notes
+[groupware.les](http://groupware.les.inf.puc-rio.br/har)
+[John Hopkins Data Science Specialization](https://www.coursera.org/specializations/jhudatascience)
+
