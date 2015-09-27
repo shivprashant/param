@@ -1,69 +1,54 @@
 ---
-title: "MyTrainingBuddy"
+title: "FitBot"
 author: "Shiv"
 date: "Tuesday, August 18, 2015"
 output: html_document
 pandoc_args: ["+RTS", "-K64m","-RTS"]
 ---
+FitBot, you personal fitness training Bot, monitors your excercise and provide real time supervision, correction and grading of your excercise routine. FitBot is trained using state of art machine learning algorithms and uses training data made avaialble by  [groupware.les] http://groupware.les.inf.puc-rio.br/har. 
 
-MyTrainingBuddy is a machinelearning algorithm that learns how correctly a given gym excercise is done and grades your exercize into the right category. The report below illustrates the making of the MyTrainingBuddy.
 
-MyTrainingBuddy is trained using a data provided by [groupware.les] http://groupware.les.inf.puc-rio.br/har. The data is already split as Training and Test Set. Training set would be used to train and test the data. While the original test set would be used to finally validate this data. Keeping one data set ( hence forth called the validation set) separately and using it once and only once to find the accuracy of the model implies that we do not use the validation set for training the model and avoid any overfitting errors.
 
-##Load the dataset
+The data is already split as Training and Validation Set. Training Set ( loaded from "pml-training.csv") contains the complete data, while the validation set (loadable from "pml-testing.csv") contains the predictor/feature variables but not the prediction result variable. The validation set is considered out of same data and is used to check the model in real world conditions, which allows you 2 trials to precit the type of excercise. The best machine learning algorithms when applied on out of sample data predicted 17 of the 20 outcome correctly, giving a accuracy of 85%.
 
-As a first step lets setup the enviroment, load the data set.
+The following details on the bulding of the machine learning algoritms and princples.
 
-```{r}
+## Loading and splitting data into Training and TestSet
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 WKDir="C:/Users/shivsood/Documents/GitHub/param/MachineLearning/CourseProject"
 setwd(WKDir)
 df<-read.csv("pml-training.csv",header=TRUE)
 validationSet<-read.csv("pml-testing.csv",header=TRUE)
 mySeed="02121976"
-```
-Note that `r nrow(df)` rows were loaded in this data set. 
 
-##Partition Training and Test Set
-
-As a next step, first split the data as training and test set. Then use the training set for further exploration to understand features of the data that can be used for training. Note : That **classe** is a value that we wish to predict and that would be used to split the data into 2 sets.
-
-
-```{r}
 library(caret)
 set.seed(mySeed)
-trainIndex=createDataPartition(df$classe,p=0.6,list=FALSE)
+trainIndex=createDataPartition(df$classe,p=0.2,list=FALSE)
 trainingSet=df[trainIndex,]
 testSet=df[-trainIndex,]
-```
-From `r nrow(df)` rows of original data, the training set consist of `r nrow(trainingSet)` rows and testSet contains
-`r nrow(testSet)` rows of data now.
 
-##Clean/Scrub the Training Set
+```
+The data is split as training and test set. The training set would be used for further exploration and traning the model. The test data would be used for testing the model for its predicted accuracy. From `r nrow(df)` rows of original data, the training set consist of `r nrow(trainingSet)` rows and testSet contains `r nrow(testSet)` rows of data now.
+
+##Explore, Clean/Scrub the Training Set
 
 At first lets explore the data by normal read out of the data. Some observations to make
 
 * There are 3 type of variables - int, num and factors. Note : Factor variables need to be covereted before any applicaiton.
 * Lots of variables seem are NA. Would be intresting to explore columns that are sparse to the extend they could be removed.
 
-```{r}
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 # trainSetSparseness is a measure of sparseness of each of the columns of the training set
 trainSetSparseness=sapply(trainingSet,function(z) round(100*sum(is.na(z))/nrow(trainingSet),2))
 
 # validationSetSparseness is a measure of sparseness of each of the columns of the validation set
 validationSetSparseness=sapply(validationSet,function(z) round(100*sum(is.na(z))/nrow(validationSet),2))
-```
 
-Of the `r ncol(trainingSet)` features in the training data set there are `r length(trainSetSparseness[trainSetSparseness!=0])` features that have on an average have `r mean(trainSetSparseness[trainSetSparseness!=0])`% their values as **NAs**. Does the validation set shows the same pattern?
-Of the `r ncol(validationSet)` features in the validation data set there are `r length(validationSetSparseness[validationSetSparseness!=0])` features that have `r mean(validationSetSparseness[validationSetSparseness!=0])`% of their values as **NAs**.
-
-The training set data needs to be cleaned to  ** Drop columns that are complete NA's in the validation set**. The following columns would be dropped from the data.
-
-```{r}
+#Drop unecessary columns
 colsToDrop=validationSetSparseness[validationSetSparseness!=0]
 #names(colsToDrop)
-```
 
-```{r}
 trainingSubSet=trainingSet[,-which(names(trainingSet) %in% names(colsToDrop))]
 testSubSet=testSet[,-which(names(testSet) %in% names(colsToDrop))]
 validationSubSet=validationSet[,-which(names(validationSet) %in% names(colsToDrop))]
@@ -71,23 +56,9 @@ trainingSubSet<-trainingSubSet[,-c(1,2,3,4,5,6,7)]
 testSubSet<-testSubSet[,-c(1,2,3,4,5,6,7)]
 validationSubSet<-validationSubSet[,-c(1,2,3,4,5,6,7)]
 
-```
-Dropping the columns we have removed features in the training set that are not valid feature ( do not have values) in the real world data. 
-> QQ - Removing features based on validation set - can this result in overfitting. Not in this case as we removed features that had no valid data at all.
+trainSubSetFeatureDensity=sapply(trainingSubSet,function(z) round(100*sum(!is.na(z))/nrow(trainingSubSet),2))
 
-With the reduced training set, lets see if we are now looking at a training set which has has feature that are dense ( i.e do not have NA's)
-
-```{r}
-trainSubSetFeatureDensity=sapply(c,function(z) round(100*sum(!is.na(z))/nrow(trainingSubSet),2))
-```
-
-We observe of a total of `r ncol(trainingSubSet)` features in the data set there are `r length(trainSubSetFeatureDensity[trainSubSetFeatureDensity==100])` features which are 100% dense ( i.e. have 100% non NA values). 
-
-### Convert Factor variables to integers
-
-The resuting set still has factor variables and these need to be coverted to integers before any processing can be done. 
-
-```{r}
+#Remove factor variables if any.
 dummies=dummyVars(classe~.,data=trainingSubSet, levelsOnly=FALSE)
 trainingSubSetNoFactors=as.data.frame(predict(dummies,newdata=trainingSubSet))
 trainingSubSetNoFactors$classe<-trainingSubSet$classe
@@ -102,9 +73,7 @@ dummies=dummyVars(problem_id~.,data=validationSubSet, levelsOnly=FALSE)
 validationSubSetNoFactors=as.data.frame(predict(dummies,newdata=validationSubSet))
 ```
 
-Split the test data into K=10 sets, each set containing rows randomly choosen from the test data. Each of the K-folds will be used for cross validation.
-
-```{r}
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 #Make Multiple subsets out of testSubSet
 set.seed(mySeed)
 x=createFolds(testSubSetNoFactors$classe,k=10)
@@ -119,17 +88,25 @@ testSubSetNoFactors8=testSubSetNoFactors[x[[8]],]
 testSubSetNoFactors9=testSubSetNoFactors[x[[9]],]
 testSubSetNoFactors10=testSubSetNoFactors[x[[10]],]
 ```
-Converting the factor variable to integers increase the number of columns to `r ncol(trainingSubSetNoFactors)`
+
+
+Of the `r ncol(trainingSet)` features in the training data set there are `r length(trainSetSparseness[trainSetSparseness!=0])` features that have on an average have `r mean(trainSetSparseness[trainSetSparseness!=0])`% their values as **NAs**. These are very sparse colums and not very usable to be used as a predictors. Does the validation set shows the same pattern? Of the `r ncol(validationSet)` features in the validation data set there are `r length(validationSetSparseness[validationSetSparseness!=0])` features that have `r mean(validationSetSparseness[validationSetSparseness!=0])`% of their values as **NAs**. This basically implies that `r length(validationSetSparseness[validationSetSparseness!=0])` can be **dropped** from the training and test sets. For a list of columns that are dropped refer Appendix "Dropped feature". Dropping these columns we have removed features in the training set that are not valid feature ( do not have values) in the real world data and thus would have no impact on the prediction. 
+
+Post processing ( removal of sparse cols) the training set has a total of `r ncol(trainingSubSet)` features of which `r length(trainSubSetFeatureDensity[trainSubSetFeatureDensity==100])` features which are 100% dense ( i.e. have 100% non NA values). The same processing is applied to Test and Validation Set.
+
+The Test set is now split into K=10 sets, each set containing rows randomly. Each of the 10-folds will be used for cross validation of multiple models. Each of the 10 test folds would be used on 1 and only 1 model that we construct. These reduces the possibility of creating models that overfit to any given data set.
 
 ## Explore the dataset to identify features.
-The objective here is to find features that in the data set that could be used to train the model. A feature usually the subset of the predictors that exibit a high correlation to the prediction. 
+Explore feature that show high correlation to see these how these influence the predictor. 
 
 ```{r}
 library(corrplot)
 corMatrix = cor(trainingSubSetNoFactors[,-53])
 #corrplot(corMatrix, method="number")
 diag(corMatrix) = 0
-which(corMatrix > 0.95, arr.ind=T)
+#which(corMatrix > 0.80, arr.ind=T)
+corrplot(corMatrix[1:25,1:25],order="AOE",method="circle",sig.level=0.80,insig = "blank")
+corrplot(corMatrix[25:52,25:52],order="AOE",method="circle",sig.level=0.80,insig = "blank")
 ```
 
 "total_accel_belt" and "roll_belt" show a very high correlation. Lets explore these as predictors in relation to the prediction ( "classe")
@@ -141,6 +118,10 @@ ggplot(data=trainingSubSetNoFactors, aes(x=total_accel_belt, y=roll_belt)) +
 
 ggplot(data=trainingSubSetNoFactors, aes(x=gyros_forearm_z, y=gyros_dumbbell_z)) + 
     geom_point(aes(color=classe))
+
+ggplot(data=trainingSubSetNoFactors, aes(x=pitch_belt, y=accel_belt_x)) + 
+    geom_point(aes(color=classe))
+
 ```
 
 
@@ -172,6 +153,7 @@ confusionMatrix(testSubSetNoFactors1$classe, predict(modelFitRPartsPCA, testPC))
 
 ```{r}
 library(randomForest)
+trainingSubSetNoFactors=testSubSetNoFactors10
 preProc=preProcess(trainingSubSetNoFactors[,-53],method="pca", thresh=0.7)
 trainPC=predict(preProc,trainingSubSetNoFactors[,-53])
 
@@ -218,9 +200,30 @@ confusionMatrix(testSubSetNoFactors10$classe, predict(modelFitRForest, testPC))
 ```
 # Use the best model and generate results.
 Random forest - PCA 0.7 - with 80% training data, gave results  : ##  [1] A A A A A E D B A A A C B A E E A B B B
+Random forest - PCA 0.7 - with 60% training data, gave results  : ##  [1] A A A A A E D B A A A C B A E E A B B B
+Random forest - PCA 0.7 - with 40% training data, gave results  : ##  [1] B A A C A E D A A A A C B A E E A B D B
 ```{r}
 validationPC=predict(preProc,validationSubSetNoFactors) #Apply the same preprocessing to testset.
-predict(modelFitRForest,validationPC)
+results3=predict(modelFitRForest,validationPC)
+
+results3
+
+
+results1=c("A","A","A","A","A","E","D","B","A","A","A","C","B","A","E","E","A","B","B","B")
+results2=c("B","A","A","C","A","E","D","A","A","A","A","C","B","A","E","E","A","B","D","B")
+
+pml_write_files = function(x,fn){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0(fn,"problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(results1,"results/result1/")
+pml_write_files(results2,"results/result2/")
+pml_write_files(results3,"results/result3/")
+
+
 ```
 
 
@@ -248,6 +251,11 @@ confusionMatrix(cutTest$classe, predict(modelFitRParts, testPC))
 ```
 
 ## Appendix
+
+## Features dropped as predictors
+The following is the list of columsn that were null/NA in validation set and thus were dropped from the list of candidate 
+`r names(colsToDrop)`
+
 Too many features. first check for features that have very low variance and thus can be eliminated.
 ```{r}
 #nsv=nearZeroVar(ex,saveMetric=TRUE)
